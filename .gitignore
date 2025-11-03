@@ -1,0 +1,6 @@
+# Archivos y carpetas que no se deben subir al repo
+node_modules/
+build/
+dist/
+.cache/
+.env
