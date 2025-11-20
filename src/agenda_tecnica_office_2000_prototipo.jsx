@@ -31,84 +31,109 @@ export default function AgendaTecnicaOffice2000() {
     { id: "eduardo", name: "Eduardo Antúnez" },
   ];
 
-  // 📄 Exportar servicios del día a PDF
-  const exportToPDF = () => {
-    if (!servicesOfDay?.length) {
-      alert("No hay servicios para exportar");
-      return;
-    }
+// 📄 Exportar servicios del día a PDF (corregido para no convertir la hora a UTC)
+const exportToPDF = () => {
+  if (!servicesOfDay?.length) {
+    alert("No hay servicios para exportar");
+    return;
+  }
 
-    try {
-      const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "A4" });
-      const logo = new Image();
-      logo.src = "/Office2000.png"; // ⚠️ Asegúrate del nombre exacto
+  try {
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "A4" });
+    const logo = new Image();
+    logo.src = "/Office2000.png"; // ⚠️ Asegurate del nombre exacto
 
-      logo.onload = () => {
-        doc.addImage(logo, "PNG", 40, 20, 100, 50);
-        doc.setFontSize(16);
-        doc.text("Servicios del día", 40, 90);
-
-        const fechaActual = new Date(selectedDate).toLocaleDateString("es-UY", {
-          weekday: "long",
+    const formatDateForPDF = (datetime) => {
+      if (!datetime) return "";
+      // Si tiene "T" (formato ISO sin zona) -> separar fecha y hora y usarlos tal cual
+      if (typeof datetime === "string" && datetime.includes("T")) {
+        const [datePart, timePartRaw] = datetime.split("T");
+        const timePart = (timePartRaw || "").slice(0, 5); // "HH:MM"
+        // formatear la fecha usando Date solamente para la parte calendario (no la hora)
+        const dateObj = new Date(datePart + "T00:00:00");
+        const fechaStr = dateObj.toLocaleDateString("es-UY", {
+          day: "2-digit",
+          month: "2-digit",
           year: "numeric",
-          month: "long",
-          day: "numeric",
         });
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(fechaActual, 40, 105);
+        return `${fechaStr}, ${timePart}`;
+      }
+      // fallback: si es Date u otra cosa, usar toLocaleString
+      try {
+        const d = new Date(datetime);
+        return d.toLocaleString("es-UY");
+      } catch (e) {
+        return String(datetime);
+      }
+    };
 
-        const tableData = servicesOfDay.map((s) => [
-          s.clientName || "",
-          s.address || "",
-          s.phone || "",
-          s.description || "",
-          new Date(s.datetime).toLocaleString() || "",
-        ]);
+    logo.onload = () => {
+      doc.addImage(logo, "PNG", 40, 20, 100, 50);
+      doc.setFontSize(16);
+      doc.text("Servicios del día", 40, 90);
 
-        autoTable(doc, {
-          startY: 120,
-          head: [["Cliente", "Dirección", "Teléfono", "Descripción", "Fecha"]],
-          body: tableData,
-          styles: { fontSize: 9, cellPadding: 4 },
-          headStyles: { fillColor: [30, 64, 175] },
-          alternateRowStyles: { fillColor: [245, 247, 255] },
-        });
+      const fechaActual = new Date(selectedDate).toLocaleDateString("es-UY", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(fechaActual, 40, 105);
 
-        const fechaArchivo = new Date(selectedDate).toISOString().slice(0, 10);
-        doc.save(`servicios_${fechaArchivo}.pdf`);
-      };
+      // Build table rows using formatDateForPDF
+      const tableData = servicesOfDay.map((s) => [
+        s.clientName || "",
+        s.address || "",
+        s.phone || "",
+        s.description || "",
+        formatDateForPDF(s.datetime) || "",
+      ]);
 
-      logo.onerror = () => {
-        console.warn("No se pudo cargar el logo, generando PDF sin él.");
-        doc.setFontSize(16);
-        doc.text("Servicios del día", 40, 40);
+      autoTable(doc, {
+        startY: 120,
+        head: [["Cliente", "Dirección", "Teléfono", "Descripción", "Fecha"]],
+        body: tableData,
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: [30, 64, 175] },
+        alternateRowStyles: { fillColor: [245, 247, 255] },
+      });
 
-        const tableData = servicesOfDay.map((s) => [
-          s.clientName || "",
-          s.address || "",
-          s.phone || "",
-          s.description || "",
-          new Date(s.datetime).toLocaleString() || "",
-        ]);
+      const fechaArchivo = new Date(selectedDate).toISOString().slice(0, 10);
+      doc.save(`servicios_${fechaArchivo}.pdf`);
+    };
 
-        autoTable(doc, {
-          startY: 60,
-          head: [["Cliente", "Dirección", "Teléfono", "Descripción", "Fecha"]],
-          body: tableData,
-          styles: { fontSize: 9, cellPadding: 4 },
-          headStyles: { fillColor: [30, 64, 175] },
-          alternateRowStyles: { fillColor: [245, 247, 255] },
-        });
+    logo.onerror = () => {
+      console.warn("No se pudo cargar el logo, generando PDF sin él.");
+      doc.setFontSize(16);
+      doc.text("Servicios del día", 40, 40);
 
-        const fechaArchivo = new Date(selectedDate).toISOString().slice(0, 10);
-        doc.save(`servicios_${fechaArchivo}.pdf`);
-      };
-    } catch (error) {
-      console.error("Error al exportar PDF:", error);
-      alert("Ocurrió un error al generar el PDF. Ver consola.");
-    }
-  };
+      const tableData = servicesOfDay.map((s) => [
+        s.clientName || "",
+        s.address || "",
+        s.phone || "",
+        s.description || "",
+        formatDateForPDF(s.datetime) || "",
+      ]);
+
+      autoTable(doc, {
+        startY: 60,
+        head: [["Cliente", "Dirección", "Teléfono", "Descripción", "Fecha"]],
+        body: tableData,
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: [30, 64, 175] },
+        alternateRowStyles: { fillColor: [245, 247, 255] },
+      });
+
+      const fechaArchivo = new Date(selectedDate).toISOString().slice(0, 10);
+      doc.save(`servicios_${fechaArchivo}.pdf`);
+    };
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    alert("Ocurrió un error al generar el PDF. Ver consola.");
+  }
+};
 
   // 🧠 Estados generales
 const [confirmDelete, setConfirmDelete] = useState({
