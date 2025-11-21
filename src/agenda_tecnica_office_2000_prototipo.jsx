@@ -145,6 +145,7 @@ const [confirmDelete, setConfirmDelete] = useState({
   const [services, setServices] = useState([]);
   const [highlightServiceId, setHighlightServiceId] = useState(null);
   const [expandedServices, setExpandedServices] = useState([]);
+const [search, setSearch] = useState("");
 
   // 🧩 Expansión automática de servicios
 const toggleServiceExpand = (id) => {
@@ -314,10 +315,20 @@ const [programadoRecienCreado, setProgramadoRecienCreado] = useState(null);
     d1.getDate() === d2.getDate();
 
 const servicesOfDay = useMemo(() => {
-  return [...services]   // 👈 Clonamos para evitar mutar el estado dentro del render
+  return [...services]
     .filter((s) => sameDay(new Date(s.datetime), selectedDate))
-    .sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    .sort((a, b) => {
+      // Primero: pendientes arriba, finalizados abajo
+      if (a.status !== b.status) {
+        if (a.status === "pendiente") return -1;
+        if (b.status === "pendiente") return 1;
+      }
+
+      // Si tienen el mismo estado → ordenar por fecha/hora
+      return new Date(a.datetime) - new Date(b.datetime);
+    });
 }, [services, selectedDate]);
+
 
   const monthMatrix = useMemo(() => {
     const start = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
@@ -1572,17 +1583,18 @@ className={`p-4 mb-4 rounded-xl shadow-md border-l-4 transition-all duration-200
               </span>
             </div>
  {/*Flecha al extremo derecho */}
-{isFinalizado && (
+{isFinalizado && !isExpanded && (
   <span
     onClick={(e) => {
-      e.stopPropagation();           // evita conflictos con otros onClick
-      toggleServiceExpand(s.id);     // cambia expansión SIN warnings
+      e.stopPropagation();
+      toggleServiceExpand(s.id);
     }}
     className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 cursor-pointer ml-2"
   >
-    {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+    <ChevronDown size={18} />
   </span>
 )}
+
           </div>
 
           {/* Si está finalizado y NO expandido → mostrar solo descripción resumida */}
@@ -1646,15 +1658,15 @@ className={`p-4 mb-4 rounded-xl shadow-md border-l-4 transition-all duration-200
         {/* 🧰 Lado derecho: técnico + botones */}
         {(!isFinalizado || isExpanded) && (
           <div className="flex flex-col items-end gap-2 mt-2 max-sm:items-start max-sm:w-full">
-            <div className="text-xs text-gray-600 dark:text-gray-400 max-sm:text-xs hidden sm:block">
-              <span className="inline-flex items-center">
-                <UserCog
-                  size={14}
-                  className="mr-1 text-gray-500 dark:text-gray-400 relative top-[1px]"
-                />
-                Técnico: {TECHS.find((t) => t.id === s.tech)?.name}
-              </span>
-            </div>
+<div className="text-xs text-gray-600 dark:text-gray-400 max-sm:text-xs hidden sm:block whitespace-nowrap">
+  <span className="inline-flex items-center whitespace-nowrap">
+    <UserCog
+      size={14}
+      className="mr-1 text-gray-500 dark:text-gray-400 relative top-[1px]"
+    />
+    Técnico: {TECHS.find((t) => t.id === s.tech)?.name}
+  </span>
+</div>
             <div className="flex flex-wrap gap-2 justify-end max-sm:justify-start">
               {/* ✏️ Editar */}
               <button
@@ -1678,17 +1690,20 @@ className={`p-4 mb-4 rounded-xl shadow-md border-l-4 transition-all duration-200
   <Trash2 size={16} className="text-red-600" />
   <span>Eliminar</span>
 </button>
-              {/* ✅ Finalizado */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  markFinalized(s.id);
-                }}
-                className="flex items-center gap-1 px-3 py-1 text-sm font-medium bg-green-100 border border-green-400 text-green-700 rounded-full shadow-sm hover:bg-green-200 hover:shadow-md hover:scale-105 transition transform max-sm:text-xs"
-              >
-                <CheckCircle2 size={16} className="text-green-600" />
-                <span>Finalizado</span>
-              </button>
+{/* ✅ Finalizado (solo si NO está finalizado) */}
+{!isFinalizado && (
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      markFinalized(s.id);
+    }}
+    className="flex items-center gap-1 px-3 py-1 text-sm font-medium bg-green-100 border border-green-400 text-green-700 rounded-full shadow-sm hover:bg-green-200 hover:shadow-md hover:scale-105 transition transform max-sm:text-xs"
+  >
+    <CheckCircle2 size={16} className="text-green-600" />
+    <span>Finalizado</span>
+  </button>
+)}
+
             </div>
           </div>
         )}
