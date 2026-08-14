@@ -8,8 +8,9 @@ import React, {
 } from "react";
 import { createClient } from '@supabase/supabase-js';
 import { MapPin, Phone, Smartphone, UserCog, Edit3, Trash2, CheckCircle2, User2, ChevronDown, ClipboardPlus, ChevronUp } from "lucide-react";
-import { X, Save, UserPlus, FileDown, CalendarPlus, History, Clock, Clock3, ChevronLeft, ListTodo } from "lucide-react";
+import { X, Save, UserPlus, FileDown, CalendarPlus, History, Clock, Clock3, ChevronLeft, ListTodo, Calculator } from "lucide-react";
 import { CalendarDays, Repeat } from "lucide-react";
+import { CotizadorView } from './CotizadorModal';
 
 // 📦 Exportación PDF (versión compatible)
 import jsPDF from "jspdf";
@@ -24,7 +25,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export default function AgendaTecnicaOffice2000() {
   // 🌙 Estado para modo oscuro
   const [darkMode, setDarkMode] = useState(false);
-
+  const [mostrarCotizador, setMostrarCotizador] = useState(false);
   // 👷 Técnicos disponibles
   const TECHS = [
     { id: "luciano", name: "Luciano Comunale" },
@@ -1263,7 +1264,10 @@ const saveProgramado = async () => {
     tecnico: TECHS[0].id,
   });
 };
-
+// 🔴 AGREGAR ESTAS 3 LÍNEAS AQUÍ (Línea 1268):
+  if (mostrarCotizador) {
+    return <CotizadorView onVolver={() => setMostrarCotizador(false)} />;
+  }
 
 return (
   <div className={`${darkMode ? "dark" : ""}`}>
@@ -1290,18 +1294,18 @@ return (
     {/* 🔹 Botones – en PC a la derecha, en móvil abajo en una fila separada */}
     <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto mt-2 sm:mt-0">
 
-      {/* 🌙 Modo oscuro */}
+{/* 🌙 Modo oscuro */}
       <button
         onClick={() => setDarkMode(!darkMode)}
-        className="flex items-center justify-center w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm transition-all duration-200"
+        className="flex items-center justify-center w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm transition-all duration-200 shrink-0"
         title="Modo oscuro"
       >
         {darkMode ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 sm:w-5 h-4 sm:h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h1M3 12H2m15.364 6.364l.707.707M6.343 6.343l-.707-.707m12.728 0l.707-.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
         ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 sm:w-5 h-4 sm:h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
           </svg>
         )}
@@ -1314,9 +1318,9 @@ return (
           setView("agenda");
           setClientSearchTerm("");
         }}
-        className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2 text-sm sm:text-base font-medium bg-white dark:bg-slate-800 border border-slate-300 rounded-full shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700 hover:shadow-md transition-all duration-200"
+        className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
       >
-        <Clock size={15} className="sm:size-18 text-gray-600 dark:text-gray-400" />
+        <Clock size={16} className="text-slate-500 dark:text-slate-400" />
         <span>Hoy</span>
       </button>
 
@@ -1325,34 +1329,43 @@ return (
         <>
           <button
             onClick={() => openNewService(selectedDate)}
-            className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2 text-sm sm:text-base font-medium bg-blue-600 text-white rounded-full shadow-sm border border-blue-700/20 hover:bg-blue-700 hover:shadow-md hover:scale-105 transition-all duration-150"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold bg-blue-600 text-white rounded-full shadow-sm hover:bg-blue-700 hover:shadow transition-all duration-150"
           >
-            <ClipboardPlus size={15} className="sm:size-18 text-white" />
+            <ClipboardPlus size={16} />
             <span>Nuevo</span>
           </button>
 
           <button
             onClick={() => setView("pendientes")}
-            className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2 text-sm sm:text-base font-medium bg-red-600 text-white rounded-full shadow-sm border border-red-700/20 hover:bg-red-700 hover:shadow-md hover:scale-105 transition-all duration-150"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold bg-red-600 text-white rounded-full shadow-sm hover:bg-red-700 hover:shadow transition-all duration-150"
           >
-            <ListTodo size={15} className="sm:size-18 text-white" />
+            <ListTodo size={16} />
             <span>Pendientes</span>
           </button>
 
           <button
             onClick={() => setView("clientes")}
-            className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2 text-sm sm:text-base font-medium bg-green-600 text-white rounded-full shadow-sm border border-green-700/20 hover:bg-green-700 hover:shadow-md hover:scale-105 transition-all duration-150"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold bg-emerald-600 text-white rounded-full shadow-sm hover:bg-emerald-700 hover:shadow transition-all duration-150"
           >
-            <User2 size={15} className="sm:size-18 text-white" />
+            <User2 size={16} />
             <span>Clientes</span>
           </button>
 
           <button
             onClick={() => setView("programados")}
-            className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2 text-sm sm:text-base font-medium bg-cyan-600 text-white rounded-full shadow-sm border border-cyan-700/20 hover:bg-cyan-700 hover:shadow-md hover:scale-105 transition-all duration-150"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold bg-cyan-600 text-white rounded-full shadow-sm hover:bg-cyan-700 hover:shadow transition-all duration-150"
           >
-            <History size={15} className="sm:size-18 text-white" />
+            <History size={16} />
             <span>Programados</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMostrarCotizador(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold bg-purple-600 text-white rounded-full shadow-sm hover:bg-purple-700 hover:shadow transition-all duration-150"
+          >
+            <Calculator size={16} />
+            <span>Cotizador</span>
           </button>
         </>
       )}
@@ -1364,9 +1377,9 @@ return (
             setView("agenda");
             setClientSearchTerm("");
           }}
-          className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2 text-sm sm:text-base font-medium bg-white dark:bg-slate-800 border border-slate-300 rounded-full shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700 hover:shadow-md transition-all duration-200"
+          className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
         >
-          <ChevronLeft size={15} className="sm:size-18 text-gray-600 dark:text-gray-400" />
+          <ChevronLeft size={16} className="text-slate-500 dark:text-slate-400" />
           <span>Volver</span>
         </button>
       )}
@@ -2690,8 +2703,12 @@ setHighlightServiceId(s.id);
   <footer className="w-full text-center text-gray-600 dark:text-gray-400 text-xs sm:text-sm bg-transparent">
 
   </footer>
-</div> 
+<CotizadorView 
+        isOpen={mostrarCotizador} 
+        onClose={() => setMostrarCotizador(false)} 
+      />
     </div>
+  </div>
 
 ); // 👈 este cierra el return
 } // 👈 este cierra el componente
