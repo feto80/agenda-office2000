@@ -1,0 +1,12 @@
+{
+  "short_name": "Agenda O2000",
+  "name": "Agenda Técnica Office2000",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0072ce",
+  "icons": [
+    { "src": "logo192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "logo512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
