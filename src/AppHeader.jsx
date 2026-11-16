@@ -57,7 +57,6 @@ export default function AppHeader({
               <p className="text-sm sm:text-base font-bold text-[#0072ce] dark:text-sky-400 truncate">
                 Agenda de Servicio Técnico
               </p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">Office2000</p>
             </div>
           </div>
 
