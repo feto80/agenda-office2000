@@ -19,10 +19,10 @@ export default function LoginScreen({ onLogin, darkMode }) {
 
   return (
     <div className={darkMode ? "dark" : ""}>
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-[#0b1220] p-4 text-slate-800 dark:text-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#e5eaf1] dark:bg-slate-950 p-4 text-slate-800 dark:text-slate-100">
         <form
           onSubmit={submit}
-          className="w-full max-w-sm bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-4"
+          className="w-full max-w-sm bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-4"
         >
           <div className="text-center">
             <img src="/logo Office2000.webp" alt="Office2000" className="h-14 w-auto mx-auto mb-2" />

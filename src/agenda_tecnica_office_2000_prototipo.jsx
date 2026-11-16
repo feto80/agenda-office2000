@@ -12,20 +12,14 @@ import React, {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
-  Clock,
   ClipboardPlus,
-  ListTodo,
-  User2,
   History,
-  Calculator,
-  ChevronLeft,
+  MessageCircle,
+  Trash2,
   FileDown,
   Edit3,
-  X,
-  Save,
   UserPlus,
   Search,
-  LogOut,
 } from "lucide-react";
 
 import { CotizadorView } from "./CotizadorModal";
@@ -45,6 +39,8 @@ import {
   cardCls,
   inputCls,
   labelCls,
+  btn,
+  capFirst,
   norm,
   statusOf,
   isClosed,
@@ -52,6 +48,7 @@ import {
   startOfToday,
   splitDateTime,
   fmtDate,
+  waNumber,
   normalizeTime,
   fechasProgramado,
   byDatetime,
@@ -65,6 +62,9 @@ import PendientesView from "./PendientesView";
 import ClientesView from "./ClientesView";
 import ProgramadosView from "./ProgramadosView";
 import LoginScreen from "./LoginScreen";
+import AppHeader from "./AppHeader";
+import CalendarPanel from "./CalendarPanel";
+import Modal from "./Modal";
 
 // Si en Vercel se define REACT_APP_REQUIRE_LOGIN=true, se pide usuario y contraseña
 const REQUIRE_LOGIN = process.env.REACT_APP_REQUIRE_LOGIN === "true";
@@ -102,12 +102,6 @@ const loadImage = (src) =>
     img.onerror = () => resolve(null);
     img.src = src;
   });
-
-const topBtn =
-  "flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-full shadow-sm hover:shadow transition-all duration-150";
-const topBtnLight = `${topBtn} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700`;
-
-const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export default function AgendaTecnicaOffice2000() {
   // ---------------- Estado general ----------------
@@ -349,28 +343,11 @@ export default function AgendaTecnicaOffice2000() {
       .slice(0, 50);
   }, [search, visibleServices]);
 
-  const monthMatrix = useMemo(() => {
-    const y = selectedDate.getFullYear();
-    const m = selectedDate.getMonth();
-    const offset = (new Date(y, m, 1).getDay() + 6) % 7; // la semana empieza el lunes
-    const lastDay = new Date(y, m + 1, 0).getDate();
-    const cells = [
-      ...Array(offset).fill(null),
-      ...Array.from({ length: lastDay }, (_, i) => new Date(y, m, i + 1)),
-    ];
-    while (cells.length % 7) cells.push(null);
-    const weeks = [];
-    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-    return weeks;
-  }, [selectedDate]);
-
   useEffect(() => {
     document.title = overdue.length
       ? `(${overdue.length}) Agenda Técnica Office2000`
       : "Agenda Técnica Office2000";
   }, [overdue.length]);
-
-  const todayStart = startOfToday();
 
   // ---------------- Acciones ----------------
   const handleLogin = async (email, password) => {
@@ -792,11 +769,18 @@ export default function AgendaTecnicaOffice2000() {
 
   // ---- WhatsApp con número suelto ----
   const openWhatsapp = () => {
-    if (!whatsappNumber) {
+    const digits = whatsappNumber.replace(/\D/g, "");
+    if (!digits) {
       alert("Ingresá un número");
       return;
     }
-    window.open(`https://wa.me/598${whatsappNumber.replace(/^0/, "")}`, "_blank");
+    // Celular uruguayo (con 0, con +598, con espacios) o, si es otro país, el número completo
+    const n = waNumber(whatsappNumber) || (digits.length >= 11 && !digits.startsWith("0") ? digits : null);
+    if (!n) {
+      toast.error("El número no es válido. Ejemplo: 091 234 567");
+      return;
+    }
+    window.open(`https://wa.me/${n}`, "_blank");
     setShowWhatsappModal(false);
     setWhatsappNumber("");
   };
@@ -820,220 +804,72 @@ export default function AgendaTecnicaOffice2000() {
   // ---------------- Pantalla principal ----------------
   return (
     <div className={darkMode ? "dark" : ""}>
-      <div className="min-h-screen bg-slate-100 dark:bg-[#0b1220] transition-colors duration-300 ease-in-out p-4 sm:p-6 md:p-8 font-sans text-slate-800 dark:text-slate-100 antialiased overflow-x-hidden pb-20">
+      <div className="min-h-screen bg-[#e5eaf1] dark:bg-slate-950 transition-colors duration-300 ease-in-out p-3 sm:p-6 md:p-8 font-sans text-slate-800 dark:text-slate-100 antialiased overflow-x-hidden pb-20">
         <Toaster position="bottom-right" reverseOrder={false} />
 
         {/* ---------- Encabezado ---------- */}
-        <header className="max-w-7xl mx-auto mb-6 bg-white dark:bg-slate-800/70 rounded-xl p-3 shadow-md border border-slate-200 dark:border-slate-700 backdrop-blur-sm text-slate-800 dark:text-slate-100 transition-colors duration-300">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 flex-shrink-0 w-full sm:w-auto justify-center sm:justify-start">
-              <img src="/logo Office2000.webp" alt="Office2000" className="h-[3.8rem] w-auto" />
-              <p className="text-base md:text-lg font-bold text-[#0072ce] drop-shadow-md whitespace-nowrap">
-                AGENDA SERVICIO TÉCNICO
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-              {/* Modo oscuro */}
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm transition-all duration-200 shrink-0"
-                title="Modo oscuro"
-              >
-                {darkMode ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h1M3 12H2m15.364 6.364l.707.707M6.343 6.343l-.707-.707m12.728 0l.707-.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
-                  </svg>
-                )}
-              </button>
-
-              {/* Hoy */}
-              <button
-                onClick={() => {
-                  setSelectedDate(startOfToday());
-                  setView("agenda");
-                  setSearch("");
-                }}
-                className={topBtnLight}
-              >
-                <Clock size={16} className="text-slate-500 dark:text-slate-400" />
-                <span>Hoy</span>
-              </button>
-
-              {view === "agenda" && (
-                <>
-                  <button onClick={openNewService} className={`${topBtn} bg-blue-600 text-white hover:bg-blue-700`}>
-                    <ClipboardPlus size={16} />
-                    <span>Nuevo</span>
-                  </button>
-
-                  <button onClick={() => setView("pendientes")} className={`${topBtn} bg-red-600 text-white hover:bg-red-700`}>
-                    <ListTodo size={16} />
-                    <span>Pendientes</span>
-                    {overdue.length > 0 && (
-                      <span className="ml-1 min-w-[1.25rem] h-5 px-1 rounded-full bg-white text-red-600 text-xs font-bold flex items-center justify-center">
-                        {overdue.length}
-                      </span>
-                    )}
-                  </button>
-
-                  <button onClick={() => setView("clientes")} className={`${topBtn} bg-emerald-600 text-white hover:bg-emerald-700`}>
-                    <User2 size={16} />
-                    <span>Clientes</span>
-                  </button>
-
-                  <button onClick={() => setView("programados")} className={`${topBtn} bg-cyan-600 text-white hover:bg-cyan-700`}>
-                    <History size={16} />
-                    <span>Programados</span>
-                  </button>
-
-                  <button type="button" onClick={() => setMostrarCotizador(true)} className={`${topBtn} bg-purple-600 text-white hover:bg-purple-700`}>
-                    <Calculator size={16} />
-                    <span>Cotizador</span>
-                  </button>
-                </>
-              )}
-
-              {view !== "agenda" && (
-                <button
-                  onClick={() => {
-                    setView("agenda");
-                  }}
-                  className={topBtnLight}
-                >
-                  <ChevronLeft size={16} className="text-slate-500 dark:text-slate-400" />
-                  <span>Volver</span>
-                </button>
-              )}
-
-              {REQUIRE_LOGIN && (
-                <button onClick={handleLogout} className={topBtnLight} title="Cerrar sesión">
-                  <LogOut size={16} className="text-slate-500 dark:text-slate-400" />
-                  <span>Salir</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </header>
+        <AppHeader
+          darkMode={darkMode}
+          onToggleDark={() => setDarkMode(!darkMode)}
+          view={view}
+          overdueCount={overdue.length}
+          onToday={() => {
+            setSelectedDate(startOfToday());
+            setView("agenda");
+            setSearch("");
+          }}
+          onNew={openNewService}
+          onView={setView}
+          onCotizador={() => setMostrarCotizador(true)}
+          onBack={() => setView("agenda")}
+          requireLogin={REQUIRE_LOGIN}
+          onLogout={handleLogout}
+        />
 
         {/* ---------- Contenido ---------- */}
-        <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 items-start content-start">
+        <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start content-start">
           {view === "agenda" ? (
             <>
               {/* Calendario */}
-              <aside className="md:col-span-1 flex flex-col justify-start h-fit mt-[8px]">
-                <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 backdrop-blur-sm transition-colors duration-300">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                      {selectedDate.toLocaleString("es-UY", { month: "long" })} de {selectedDate.getFullYear()}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-                        className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
-                      >
-                        <span className="text-lg font-semibold">&lt;</span>
-                      </button>
-                      <button
-                        onClick={() => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-                        className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
-                      >
-                        <span className="text-lg font-semibold">&gt;</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-7 text-xs font-medium text-center text-gray-500 dark:text-gray-400 border-b dark:border-slate-700 pb-1">
-                    {weekDays.map((d) => (
-                      <div key={d}>{d}</div>
-                    ))}
-                  </div>
-
-                  <div className="mt-2 space-y-1">
-                    {monthMatrix.map((week, i) => (
-                      <div key={i} className="grid grid-cols-7 gap-1 text-sm">
-                        {week.map((day, j) => {
-                          const iso = day ? toLocalISODate(day) : "";
-                          const isToday = day && iso === toLocalISODate(todayStart);
-                          const isSelected = day && iso === selectedISO;
-                          const cnt = day ? countsByDay[iso] || 0 : 0;
-                          return (
-                            <button
-                              key={j}
-                              onClick={() => day && setSelectedDate(new Date(day))}
-                              disabled={!day}
-                              className={`relative p-2 rounded-lg text-left h-12 flex flex-col justify-between transition-all duration-200 ${
-                                !day
-                                  ? "bg-gray-50 dark:bg-slate-900 cursor-default"
-                                  : isSelected
-                                  ? "bg-blue-600 text-white font-semibold shadow-md"
-                                  : isToday
-                                  ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 font-semibold ring-2 ring-blue-400"
-                                  : "bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-slate-700 hover:shadow-sm"
-                              }`}
-                            >
-                              <div className="text-sm">{day ? day.getDate() : ""}</div>
-                              {cnt > 0 && (
-                                <div
-                                  className={`absolute bottom-1 right-1 flex items-center text-xs font-medium ${
-                                    isSelected ? "text-white" : "text-blue-800 dark:text-white"
-                                  }`}
-                                >
-                                  <span
-                                    className={`inline-block w-2 h-2 rounded-full mr-1 ${
-                                      isSelected ? "bg-white" : "bg-blue-600 dark:bg-white"
-                                    }`}
-                                  ></span>
-                                  <span>{cnt}</span>
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <aside className="md:col-span-1 flex flex-col justify-start h-fit">
+                <CalendarPanel
+                  selectedDate={selectedDate}
+                  onSelect={setSelectedDate}
+                  onMonthChange={(n) =>
+                    setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth() + n, 1))
+                  }
+                  countsByDay={countsByDay}
+                />
               </aside>
 
               {/* Agenda del día */}
-              <section className="md:col-span-2 flex flex-col justify-start h-fit mt-[8px]">
+              <section className="md:col-span-2 flex flex-col justify-start h-fit">
                 <div className={cardCls}>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                     <div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Agenda diaria</div>
-                      <div className="text-xl font-semibold">
-                        {selectedDate.toLocaleDateString("es-UY", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Agenda diaria
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold">
+                        {capFirst(
+                          selectedDate.toLocaleDateString("es-UY", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap justify-end sm:justify-between items-center gap-3 mt-3 sm:mt-0">
-                      <button
-                        onClick={() => setShowWhatsappModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-full shadow-sm hover:bg-green-700 hover:shadow-md hover:scale-105 transition transform"
-                      >
-                        <img
-                          src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
-                          alt="WhatsApp"
-                          className="w-4 h-4 drop-shadow-sm"
-                        />
+                    <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0">
+                      <button onClick={() => setShowWhatsappModal(true)} className={btn.softGreen}>
+                        <MessageCircle size={16} />
                         <span>Enviar WhatsApp</span>
                       </button>
 
-                      <button
-                        onClick={exportToPDF}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-full shadow-sm hover:bg-red-700 hover:shadow-md hover:scale-105 transition transform"
-                      >
-                        <FileDown size={16} className="text-white" />
+                      <button onClick={exportToPDF} className={btn.softRed}>
+                        <FileDown size={16} />
                         <span>Exportar PDF</span>
                       </button>
                     </div>
@@ -1042,23 +878,23 @@ export default function AgendaTecnicaOffice2000() {
                   {/* Buscador + filtro por técnico */}
                   <div className="flex flex-col sm:flex-row gap-3 mb-4">
                     <div className="relative flex-1">
-                      <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+                      <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
                       <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Buscar servicio (cliente, equipo, dirección, teléfono...)"
-                        className={`${inputCls} pl-9`}
+                        className={`${inputCls} pl-10`}
                       />
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-1 p-1 rounded-xl bg-slate-200 dark:bg-slate-800 self-start">
                       {[{ id: "todos", name: "Todos" }, ...TECHS].map((t) => (
                         <button
                           key={t.id}
                           onClick={() => setTechFilter(t.id)}
-                          className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition ${
+                          className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition ${
                             techFilter === t.id
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                              ? "bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-200 shadow-sm"
+                              : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
                           {t.id === "todos" ? "Todos" : t.name.split(" ")[0]}
@@ -1069,7 +905,7 @@ export default function AgendaTecnicaOffice2000() {
 
                   {searchResults ? (
                     <div className="space-y-2">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-xs text-slate-600 dark:text-slate-400">
                         {searchResults.length === 0
                           ? "No se encontraron servicios."
                           : `${searchResults.length} resultado${searchResults.length > 1 ? "s" : ""} (tocá uno para ir a su día)`}
@@ -1080,15 +916,15 @@ export default function AgendaTecnicaOffice2000() {
                           <div
                             key={s.id}
                             onClick={() => goToService(s)}
-                            className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 transition"
+                            className="border border-slate-300 dark:border-slate-700 rounded-xl p-3 cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition"
                           >
                             <div className="font-medium">
                               {s.clientName}
-                              <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                              <span className="ml-2 text-xs text-slate-600 dark:text-slate-400">
                                 {STATUS_LABEL[statusOf(s)] || statusOf(s)}
                               </span>
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-300">
+                            <div className="text-sm text-slate-700 dark:text-slate-300">
                               {fmtDate(date)} {time} • {s.description || "(sin descripción)"}
                             </div>
                           </div>
@@ -1098,7 +934,7 @@ export default function AgendaTecnicaOffice2000() {
                   ) : (
                     <div className="space-y-3">
                       {servicesOfDay.length === 0 && (
-                        <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                        <div className="p-6 text-center text-slate-600 dark:text-slate-400">
                           No hay servicios para este día. Hacé clic en "Nuevo" para agregar uno.
                         </div>
                       )}
@@ -1145,419 +981,57 @@ export default function AgendaTecnicaOffice2000() {
 
         {/* ---------- Modal: servicio ---------- */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/40 flex items-start justify-center p-4 z-50 overflow-y-auto backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-xl mt-10 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 transition-colors duration-300">
-              <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  {form.id ? (
-                    <>
-                      <Edit3 size={18} /> Editar servicio
-                    </>
-                  ) : (
-                    <>
-                      <ClipboardPlus size={18} /> Nuevo servicio
-                    </>
-                  )}
-                </h2>
-                <div className="flex gap-2">
+          <Modal
+            title={form.id ? "Editar servicio" : "Nuevo servicio"}
+            icon={form.id ? <Edit3 size={18} /> : <ClipboardPlus size={18} />}
+            accent="blue"
+            maxWidth="max-w-3xl"
+            onClose={closeForm}
+            onSave={saveService}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-12 gap-3">
+              {/* Cliente con autocompletado */}
+              <div className="col-span-2 md:col-span-4">
+                <div className="flex items-center justify-between mb-1">
+                  <label className={`${labelCls} !mb-0`}>Cliente</label>
                   <button
-                    onClick={closeForm}
-                    className="flex items-center gap-1 px-3 py-1 text-sm font-medium bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-slate-600 rounded-full shadow-sm hover:bg-gray-100 dark:hover:bg-slate-700 hover:shadow-md hover:scale-105 transition"
-                  >
-                    <X size={16} className="text-gray-600 dark:text-gray-400" />
-                    <span>Cerrar</span>
-                  </button>
-                  <button
-                    onClick={saveService}
-                    className="flex items-center gap-1 px-3 py-1 text-sm font-medium bg-blue-700 text-white rounded-full shadow-sm hover:bg-blue-800 hover:shadow-md hover:scale-105 transition"
-                  >
-                    <Save size={16} />
-                    <span>Guardar</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Cliente con autocompletado */}
-                <div>
-                  <label className={labelCls}>Cliente</label>
-                  <div className="relative" ref={suggestionsRef}>
-                    <input
-                      id="inputCliente"
-                      value={form.clientName ?? ""}
-                      onChange={(e) => onClientNameChange(e.target.value)}
-                      className={inputCls}
-                      placeholder="Nombre del cliente"
-                      autoComplete="off"
-                    />
-                    {clientSuggestions.length > 0 && (
-                      <div className="absolute left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 mt-1 rounded-lg shadow z-50 max-h-48 overflow-auto">
-                        {clientSuggestions.map((c) => (
-                          <div
-                            key={c.id}
-                            className="px-3 py-2 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer transition"
-                            onClick={() => {
-                              setForm((f) => ({
-                                ...f,
-                                clientId: c.id,
-                                clientName: c.name,
-                                address: c.address || "",
-                                phone: c.phone || "",
-                              }));
-                              setClientSuggestions([]);
-                            }}
-                          >
-                            <div className="font-medium text-gray-800 dark:text-gray-100">{c.name}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {c.address} • {c.phone}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button
+                    type="button"
                     onClick={addClientQuick}
-                    className="mt-2 w-full md:w-auto flex items-center justify-center gap-1 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-full shadow-sm hover:bg-green-700 hover:shadow-md hover:scale-105 transition"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+                    title="Guardar este cliente en la lista de clientes"
                   >
-                    <UserPlus size={16} />
-                    <span>Crear cliente</span>
+                    <UserPlus size={13} />
+                    Crear cliente
                   </button>
                 </div>
-
-                <div>
-                  <label className={labelCls}>Dirección</label>
+                <div className="relative" ref={suggestionsRef}>
                   <input
-                    value={form.address ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                    placeholder="Dirección"
-                    className={inputCls}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelCls}>Teléfono</label>
-                  <input
-                    value={form.phone ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Teléfono"
-                    className={inputCls}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelCls}>Tipo de equipo</label>
-                  <input
-                    value={form.type ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                    placeholder="Ej: Impresora chorro de tinta"
-                    className={inputCls}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelCls}>Marca</label>
-                  <input
-                    value={form.brand ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
-                    placeholder="Marca"
-                    className={inputCls}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelCls}>Modelo</label>
-                  <input
-                    value={form.model ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
-                    placeholder="Modelo"
-                    className={inputCls}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className={labelCls}>Descripción del problema</label>
-                  <textarea
-                    value={form.description ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    rows={3}
-                    placeholder="Describa el problema o la tarea a realizar..."
-                    className={`${inputCls} resize-none`}
-                  />
-                </div>
-
-                <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <label className={labelCls}>Fecha</label>
-                    <input
-                      type="date"
-                      value={formDate}
-                      onChange={(e) => setFormDate(e.target.value)}
-                      className={inputCls}
-                    />
-                  </div>
-                  <div className="w-full sm:w-40">
-                    <label className={labelCls}>Hora</label>
-                    <input
-                      type="text"
-                      placeholder="Ej: 14:30"
-                      value={formTime}
-                      onChange={(e) => setFormTime(e.target.value.replace(/[^\d:.,]/g, "").slice(0, 5))}
-                      onBlur={() => setFormTime(normalizeTime(formTime) || "")}
-                      className={inputCls}
-                    />
-                  </div>
-                </div>
-
-                <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <label className={labelCls}>Estado</label>
-                    <select
-                      value={form.status || "pendiente"}
-                      onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                      className={inputCls}
-                    >
-                      <option value="pendiente">Pendiente</option>
-                      <option value="en curso">En curso</option>
-                      <option value="finalizado">Finalizado</option>
-                      <option value="cancelado">Cancelado</option>
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className={labelCls}>Técnico</label>
-                    <select
-                      value={form.tech}
-                      onChange={(e) => setForm((f) => ({ ...f, tech: e.target.value }))}
-                      className={inputCls}
-                    >
-                      {TECHS.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ---------- Modal: WhatsApp con número suelto ---------- */}
-        {showWhatsappModal && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-xl shadow-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">Enviar WhatsApp</h2>
-                <button
-                  onClick={() => setShowWhatsappModal(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition"
-                >
-                  ✖
-                </button>
-              </div>
-              <div className="space-y-3">
-                <label className="block text-sm text-gray-600 dark:text-gray-400">
-                  Ingresá el número (sin 0 ni +598)
-                </label>
-                <input
-                  type="text"
-                  value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value.replace(/[^0-9]/g, ""))}
-                  placeholder="Ej: 91234567"
-                  className={inputCls}
-                  onKeyDown={(e) => e.key === "Enter" && openWhatsapp()}
-                />
-                <button
-                  onClick={openWhatsapp}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg shadow"
-                >
-                  Abrir chat en WhatsApp
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ---------- Modal: cliente nuevo / editar ---------- */}
-        {showClientModal && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-xl shadow-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">{newClient.id ? "Editar cliente" : "Nuevo cliente"}</h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowClientModal(false)}
-                    className="px-3 py-1 border border-gray-300 dark:border-slate-600 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
-                  >
-                    Cerrar
-                  </button>
-                  <button onClick={saveNewClient} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full">
-                    Guardar
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className={labelCls}>Nombre</label>
-                  <input
-                    value={newClient.name}
-                    onChange={(e) => setNewClient((n) => ({ ...n, name: e.target.value }))}
+                    id="inputCliente"
+                    value={form.clientName ?? ""}
+                    onChange={(e) => onClientNameChange(e.target.value)}
                     className={inputCls}
                     placeholder="Nombre del cliente"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Dirección</label>
-                  <input
-                    value={newClient.address}
-                    onChange={(e) => setNewClient((n) => ({ ...n, address: e.target.value }))}
-                    className={inputCls}
-                    placeholder="Dirección"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Teléfono</label>
-                  <input
-                    value={newClient.phone}
-                    onChange={(e) => setNewClient((n) => ({ ...n, phone: e.target.value }))}
-                    className={inputCls}
-                    placeholder="Teléfono"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ---------- Modal: servicios anteriores ---------- */}
-        {showClientServicesModal && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-xl shadow-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">Servicios anteriores</h2>
-                <button
-                  onClick={() => setShowClientServicesModal(false)}
-                  className="px-3 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition"
-                >
-                  ✖
-                </button>
-              </div>
-              {selectedClientServices.length === 0 ? (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                  Este cliente no tiene servicios registrados.
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-96 overflow-auto">
-                  {selectedClientServices.map((s) => {
-                    const { date, time } = splitDateTime(s.datetime);
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => goToService(s)}
-                        className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 shadow-sm bg-gray-50 dark:bg-slate-900 hover:bg-blue-100 dark:hover:bg-slate-700 cursor-pointer transition"
-                      >
-                        <div className="font-medium text-gray-800 dark:text-gray-100">
-                          {fmtDate(date)} • {time}
-                        </div>
-                        <div className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                          {s.description || "(Sin descripción)"}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Estado: <strong>{STATUS_LABEL[statusOf(s)] || statusOf(s)}</strong> • Técnico:{" "}
-                          {TECHS.find((t) => t.id === s.tech)?.name || "-"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ---------- Modal: servicio programado ---------- */}
-        {showProgramadoModal && (
-          <div className="fixed inset-0 bg-black/40 flex items-start justify-center p-4 z-50 overflow-y-auto backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-xl mt-10 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 transition-colors duration-300">
-              <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-inner">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  {progForm.id ? (
-                    <>
-                      <Edit3 size={18} /> Editar servicio programado
-                    </>
-                  ) : (
-                    <>
-                      <ClipboardPlus size={18} /> Nuevo servicio programado
-                    </>
-                  )}
-                </h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={closeProgramadoModal}
-                    className="flex items-center gap-1 px-3 py-1 text-sm font-medium bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-slate-600 rounded-full shadow-sm hover:bg-gray-100 dark:hover:bg-slate-700 hover:shadow-md hover:scale-105 transition"
-                  >
-                    <X size={16} className="text-gray-600 dark:text-gray-400" />
-                    <span>Cerrar</span>
-                  </button>
-                  <button
-                    onClick={saveProgramado}
-                    className="flex items-center gap-1 px-3 py-1 text-sm font-medium bg-cyan-700 text-white rounded-full shadow-sm hover:bg-cyan-800 hover:shadow-md hover:scale-105 transition"
-                  >
-                    <Save size={16} />
-                    <span>Guardar</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2 relative" ref={progSuggestionsRef}>
-                  <label className={labelCls}>Cliente</label>
-                  <input
-                    ref={progClienteInputRef}
-                    type="text"
-                    value={progForm.cliente}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setProgForm((prev) => ({ ...prev, cliente: val }));
-                      const q = norm(val);
-                      if (!q) {
-                        setProgSuggestions([]);
-                        return;
-                      }
-                      setProgSuggestions(
-                        clients
-                          .filter(
-                            (c) =>
-                              norm(c.name).includes(q) ||
-                              norm(c.phone).includes(q) ||
-                              norm(c.address).includes(q)
-                          )
-                          .slice(0, 6)
-                      );
-                    }}
-                    placeholder="Buscar cliente..."
-                    className={inputCls}
                     autoComplete="off"
                   />
-                  {progSuggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg shadow z-50 max-h-48 overflow-auto">
-                      {progSuggestions.map((c) => (
+                  {clientSuggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-lg z-50 max-h-48 overflow-auto">
+                      {clientSuggestions.map((c) => (
                         <div
                           key={c.id}
-                          className="px-3 py-2 hover:bg-cyan-50 dark:hover:bg-slate-700 cursor-pointer"
+                          className="px-3 py-2 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer transition"
                           onClick={() => {
-                            setProgForm((prev) => ({
-                              ...prev,
-                              cliente: c.name,
-                              direccion: c.address || "",
-                              telefono: c.phone || "",
+                            setForm((f) => ({
+                              ...f,
+                              clientId: c.id,
+                              clientName: c.name,
+                              address: c.address || "",
+                              phone: c.phone || "",
                             }));
-                            setProgSuggestions([]);
+                            setClientSuggestions([]);
                           }}
                         >
-                          <div className="font-medium">{c.name}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="font-medium text-slate-800 dark:text-slate-100">{c.name}</div>
+                          <div className="text-xs text-slate-600 dark:text-slate-400">
                             {c.address} • {c.phone}
                           </div>
                         </div>
@@ -1565,136 +1039,419 @@ export default function AgendaTecnicaOffice2000() {
                     </div>
                   )}
                 </div>
+              </div>
 
-                <div>
-                  <label className={labelCls}>Dirección</label>
-                  <input
-                    type="text"
-                    value={progForm.direccion}
-                    onChange={(e) => setProgForm((f) => ({ ...f, direccion: e.target.value }))}
-                    className={inputCls}
-                  />
-                </div>
+              <div className="col-span-2 md:col-span-5">
+                <label className={labelCls}>Dirección</label>
+                <input
+                  value={form.address ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                  placeholder="Dirección"
+                  className={inputCls}
+                />
+              </div>
 
-                <div>
-                  <label className={labelCls}>Teléfono</label>
-                  <input
-                    type="text"
-                    value={progForm.telefono}
-                    onChange={(e) => setProgForm((f) => ({ ...f, telefono: e.target.value }))}
-                    className={inputCls}
-                  />
-                </div>
+              <div className="col-span-2 md:col-span-3">
+                <label className={labelCls}>Teléfono</label>
+                <input
+                  value={form.phone ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="Teléfono"
+                  className={inputCls}
+                />
+              </div>
 
-                <div className="md:col-span-2">
-                  <label className={labelCls}>Descripción</label>
-                  <input
-                    type="text"
-                    value={progForm.descripcion}
-                    onChange={(e) => setProgForm((f) => ({ ...f, descripcion: e.target.value }))}
-                    className={inputCls}
-                  />
-                </div>
+              <div className="col-span-2 md:col-span-5">
+                <label className={labelCls}>Tipo de equipo</label>
+                <input
+                  value={form.type ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                  placeholder="Ej: Impresora chorro de tinta"
+                  className={inputCls}
+                />
+              </div>
 
-                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className={labelCls}>Primera fecha</label>
-                    <input
-                      type="date"
-                      value={progForm.fecha}
-                      onChange={(e) => setProgForm((f) => ({ ...f, fecha: e.target.value }))}
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Hora</label>
-                    <input
-                      type="text"
-                      placeholder="Ej: 1430"
-                      value={progForm.hora || ""}
-                      onChange={(e) =>
-                        setProgForm((f) => ({ ...f, hora: e.target.value.replace(/[^\d:.,]/g, "").slice(0, 5) }))
-                      }
-                      onBlur={() => setProgForm((f) => ({ ...f, hora: normalizeTime(f.hora) || "" }))}
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Frecuencia</label>
-                    <select
-                      value={progForm.frecuencia}
-                      onChange={(e) => setProgForm((f) => ({ ...f, frecuencia: e.target.value }))}
-                      className={inputCls}
-                    >
-                      <option value="1">Cada 1 mes</option>
-                      <option value="3">Cada 3 meses</option>
-                      <option value="6">Cada 6 meses</option>
-                      <option value="12">Cada año</option>
-                    </select>
-                  </div>
-                </div>
+              <div className="col-span-1 md:col-span-3">
+                <label className={labelCls}>Marca</label>
+                <input
+                  value={form.brand ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
+                  placeholder="Marca"
+                  className={inputCls}
+                />
+              </div>
 
-                <div>
-                  <label className={labelCls}>Técnico</label>
-                  <select
-                    value={progForm.tecnico}
-                    onChange={(e) => setProgForm((f) => ({ ...f, tecnico: e.target.value }))}
-                    className={inputCls}
-                  >
-                    {TECHS.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="col-span-1 md:col-span-4">
+                <label className={labelCls}>Modelo</label>
+                <input
+                  value={form.model ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+                  placeholder="Modelo"
+                  className={inputCls}
+                />
+              </div>
 
-                <div className="md:col-span-2 text-xs text-gray-500 dark:text-gray-400">
-                  Se crean automáticamente los servicios de los próximos {LIMITE_MESES} meses. Si dejás la hora
-                  vacía se usa las 09:00.
-                </div>
+              <div className="col-span-2 md:col-span-12">
+                <label className={labelCls}>Descripción del problema</label>
+                <textarea
+                  value={form.description ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={2}
+                  placeholder="Describa el problema o la tarea a realizar..."
+                  className={`${inputCls} resize-none`}
+                />
+              </div>
+
+              <div className="col-span-1 md:col-span-3">
+                <label className={labelCls}>Fecha</label>
+                <input
+                  type="date"
+                  value={formDate}
+                  onChange={(e) => setFormDate(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="col-span-1 md:col-span-2">
+                <label className={labelCls}>Hora</label>
+                <input
+                  type="text"
+                  placeholder="Ej: 14:30"
+                  value={formTime}
+                  onChange={(e) => setFormTime(e.target.value.replace(/[^\d:.,]/g, "").slice(0, 5))}
+                  onBlur={() => setFormTime(normalizeTime(formTime) || "")}
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="col-span-1 md:col-span-3">
+                <label className={labelCls}>Estado</label>
+                <select
+                  value={form.status || "pendiente"}
+                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                  className={inputCls}
+                >
+                  <option value="pendiente">Pendiente</option>
+                  <option value="en curso">En curso</option>
+                  <option value="finalizado">Finalizado</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </div>
+
+              <div className="col-span-1 md:col-span-4">
+                <label className={labelCls}>Técnico</label>
+                <select
+                  value={form.tech}
+                  onChange={(e) => setForm((f) => ({ ...f, tech: e.target.value }))}
+                  className={inputCls}
+                >
+                  {TECHS.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          </div>
+          </Modal>
+        )}
+
+        {/* ---------- Modal: WhatsApp con número suelto ---------- */}
+        {showWhatsappModal && (
+          <Modal
+            title="Enviar WhatsApp"
+            icon={<MessageCircle size={18} />}
+            accent="green"
+            maxWidth="max-w-sm"
+            onClose={() => setShowWhatsappModal(false)}
+            onSave={openWhatsapp}
+            saveLabel="Abrir chat"
+          >
+            <label className={labelCls}>Número de celular</label>
+            <input
+              type="text"
+              inputMode="tel"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value.replace(/[^0-9+\s-]/g, ""))}
+              placeholder="Ej: 091 234 567"
+              className={inputCls}
+              onKeyDown={(e) => e.key === "Enter" && openWhatsapp()}
+              autoFocus
+            />
+            <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+              Podés escribirlo con 0, con +598 o con espacios: se acomoda solo.
+            </p>
+          </Modal>
+        )}
+
+        {/* ---------- Modal: cliente nuevo / editar ---------- */}
+        {showClientModal && (
+          <Modal
+            title={newClient.id ? "Editar cliente" : "Nuevo cliente"}
+            icon={<UserPlus size={18} />}
+            accent="green"
+            maxWidth="max-w-md"
+            onClose={() => setShowClientModal(false)}
+            onSave={saveNewClient}
+          >
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className={labelCls}>Nombre</label>
+                <input
+                  value={newClient.name}
+                  onChange={(e) => setNewClient((n) => ({ ...n, name: e.target.value }))}
+                  className={inputCls}
+                  placeholder="Nombre del cliente"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Dirección</label>
+                <input
+                  value={newClient.address}
+                  onChange={(e) => setNewClient((n) => ({ ...n, address: e.target.value }))}
+                  className={inputCls}
+                  placeholder="Dirección"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Teléfono</label>
+                <input
+                  value={newClient.phone}
+                  onChange={(e) => setNewClient((n) => ({ ...n, phone: e.target.value }))}
+                  className={inputCls}
+                  placeholder="Teléfono"
+                />
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* ---------- Modal: servicios anteriores ---------- */}
+        {showClientServicesModal && (
+          <Modal
+            title="Servicios anteriores"
+            icon={<History size={18} />}
+            accent="blue"
+            maxWidth="max-w-2xl"
+            onClose={() => setShowClientServicesModal(false)}
+          >
+            {selectedClientServices.length === 0 ? (
+              <div className="text-center text-slate-500 dark:text-slate-400 py-4">
+                Este cliente no tiene servicios registrados.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[60vh] overflow-auto">
+                {selectedClientServices.map((s) => {
+                  const { date, time } = splitDateTime(s.datetime);
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => goToService(s)}
+                      className="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer transition"
+                    >
+                      <div className="font-semibold text-slate-800 dark:text-slate-100">
+                        {fmtDate(date)} • {time}
+                      </div>
+                      <div className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+                        {s.description || "(Sin descripción)"}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Estado: <strong>{STATUS_LABEL[statusOf(s)] || statusOf(s)}</strong> • Técnico:{" "}
+                        {TECHS.find((t) => t.id === s.tech)?.name || "-"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Modal>
+        )}
+
+        {/* ---------- Modal: servicio programado ---------- */}
+        {showProgramadoModal && (
+          <Modal
+            title={progForm.id ? "Editar servicio programado" : "Nuevo servicio programado"}
+            icon={progForm.id ? <Edit3 size={18} /> : <ClipboardPlus size={18} />}
+            accent="cyan"
+            maxWidth="max-w-3xl"
+            onClose={closeProgramadoModal}
+            onSave={saveProgramado}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-12 gap-3">
+              <div className="col-span-2 md:col-span-12 relative" ref={progSuggestionsRef}>
+                <label className={labelCls}>Cliente</label>
+                <input
+                  ref={progClienteInputRef}
+                  type="text"
+                  value={progForm.cliente}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProgForm((prev) => ({ ...prev, cliente: val }));
+                    const q = norm(val);
+                    if (!q) {
+                      setProgSuggestions([]);
+                      return;
+                    }
+                    setProgSuggestions(
+                      clients
+                        .filter(
+                          (c) =>
+                            norm(c.name).includes(q) ||
+                            norm(c.phone).includes(q) ||
+                            norm(c.address).includes(q)
+                        )
+                        .slice(0, 6)
+                    );
+                  }}
+                  placeholder="Buscar cliente..."
+                  className={inputCls}
+                  autoComplete="off"
+                />
+                {progSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-lg z-50 max-h-48 overflow-auto">
+                    {progSuggestions.map((c) => (
+                      <div
+                        key={c.id}
+                        className="px-3 py-2 hover:bg-cyan-50 dark:hover:bg-slate-700 cursor-pointer"
+                        onClick={() => {
+                          setProgForm((prev) => ({
+                            ...prev,
+                            cliente: c.name,
+                            direccion: c.address || "",
+                            telefono: c.phone || "",
+                          }));
+                          setProgSuggestions([]);
+                        }}
+                      >
+                        <div className="font-medium">{c.name}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">
+                          {c.address} • {c.phone}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="col-span-2 md:col-span-8">
+                <label className={labelCls}>Dirección</label>
+                <input
+                  type="text"
+                  value={progForm.direccion}
+                  onChange={(e) => setProgForm((f) => ({ ...f, direccion: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="col-span-2 md:col-span-4">
+                <label className={labelCls}>Teléfono</label>
+                <input
+                  type="text"
+                  value={progForm.telefono}
+                  onChange={(e) => setProgForm((f) => ({ ...f, telefono: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="col-span-2 md:col-span-12">
+                <label className={labelCls}>Descripción</label>
+                <input
+                  type="text"
+                  value={progForm.descripcion}
+                  onChange={(e) => setProgForm((f) => ({ ...f, descripcion: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="col-span-1 md:col-span-3">
+                <label className={labelCls}>Primera fecha</label>
+                <input
+                  type="date"
+                  value={progForm.fecha}
+                  onChange={(e) => setProgForm((f) => ({ ...f, fecha: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="col-span-1 md:col-span-2">
+                <label className={labelCls}>Hora</label>
+                <input
+                  type="text"
+                  placeholder="Ej: 1430"
+                  value={progForm.hora || ""}
+                  onChange={(e) =>
+                    setProgForm((f) => ({ ...f, hora: e.target.value.replace(/[^\d:.,]/g, "").slice(0, 5) }))
+                  }
+                  onBlur={() => setProgForm((f) => ({ ...f, hora: normalizeTime(f.hora) || "" }))}
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="col-span-1 md:col-span-3">
+                <label className={labelCls}>Frecuencia</label>
+                <select
+                  value={progForm.frecuencia}
+                  onChange={(e) => setProgForm((f) => ({ ...f, frecuencia: e.target.value }))}
+                  className={inputCls}
+                >
+                  <option value="1">Cada 1 mes</option>
+                  <option value="3">Cada 3 meses</option>
+                  <option value="6">Cada 6 meses</option>
+                  <option value="12">Cada año</option>
+                </select>
+              </div>
+
+              <div className="col-span-1 md:col-span-4">
+                <label className={labelCls}>Técnico</label>
+                <select
+                  value={progForm.tecnico}
+                  onChange={(e) => setProgForm((f) => ({ ...f, tecnico: e.target.value }))}
+                  className={inputCls}
+                >
+                  {TECHS.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-span-2 md:col-span-12 text-xs text-slate-600 dark:text-slate-400">
+                Se crean automáticamente los servicios de los próximos {LIMITE_MESES} meses. Si dejás la hora
+                vacía se usa las 09:00.
+              </div>
+            </div>
+          </Modal>
         )}
 
         {/* ---------- Modal: confirmar eliminación ---------- */}
         {confirmDelete.show && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-4">
-              <h3 className="text-lg font-semibold mb-2">Confirmar eliminación</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                {confirmDelete.type === "service" && "¿Estás seguro que querés eliminar este servicio?"}
-                {confirmDelete.type === "client" && (
-                  <>
-                    ¿Estás seguro que querés eliminar este cliente?
-                    {clientServiceCount > 0 && (
-                      <strong className="block mt-2 text-amber-600 dark:text-amber-400">
-                        Atención: tiene {clientServiceCount} servicio{clientServiceCount > 1 ? "s" : ""} registrado
-                        {clientServiceCount > 1 ? "s" : ""} en la agenda.
-                      </strong>
-                    )}
-                  </>
-                )}
-                {confirmDelete.type === "programado" &&
-                  "¿Estás seguro que querés eliminar este servicio programado? También se borran sus servicios futuros."}
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setConfirmDelete({ show: false, type: "", id: null })}
-                  className="px-3 py-1 text-sm bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={performDelete}
-                  className="px-3 py-1 text-sm bg-red-600 text-white rounded-full hover:bg-red-700 transition"
-                >
-                  Sí, eliminar
-                </button>
-              </div>
-            </div>
-          </div>
+          <Modal
+            title="Confirmar eliminación"
+            icon={<Trash2 size={18} />}
+            accent="red"
+            maxWidth="max-w-md"
+            onClose={() => setConfirmDelete({ show: false, type: "", id: null })}
+            onSave={performDelete}
+            saveLabel="Sí, eliminar"
+          >
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              {confirmDelete.type === "service" && "¿Estás seguro que querés eliminar este servicio?"}
+              {confirmDelete.type === "client" && (
+                <>
+                  ¿Estás seguro que querés eliminar este cliente?
+                  {clientServiceCount > 0 && (
+                    <strong className="block mt-2 text-amber-600 dark:text-amber-400">
+                      Atención: tiene {clientServiceCount} servicio{clientServiceCount > 1 ? "s" : ""} registrado
+                      {clientServiceCount > 1 ? "s" : ""} en la agenda.
+                    </strong>
+                  )}
+                </>
+              )}
+              {confirmDelete.type === "programado" &&
+                "¿Estás seguro que querés eliminar este servicio programado? También se borran sus servicios futuros."}
+            </p>
+          </Modal>
         )}
       </div>
     </div>

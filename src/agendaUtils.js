@@ -17,15 +17,40 @@ export const STATUS_LABEL = {
 
 // ---------- Clases de estilo compartidas ----------
 export const cardCls =
-  "bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 backdrop-blur-sm transition-colors duration-300";
+  "bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-md border border-slate-300/80 dark:border-slate-700 transition-colors duration-300";
 
 export const inputCls =
-  "w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200 outline-none transition bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400";
+  "w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20";
 
 export const labelCls =
-  "text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block";
+  "text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-1 block";
+
+// Botones: base + variantes (sólidos y suaves, con borde para que se distingan bien)
+const btnBase =
+  "inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-xl whitespace-nowrap transition active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 disabled:opacity-60";
+
+export const btn = {
+  primary: `${btnBase} bg-blue-600 text-white shadow-sm hover:bg-blue-700`,
+  green: `${btnBase} bg-emerald-600 text-white shadow-sm hover:bg-emerald-700`,
+  red: `${btnBase} bg-rose-600 text-white shadow-sm hover:bg-rose-700`,
+  cyan: `${btnBase} bg-cyan-600 text-white shadow-sm hover:bg-cyan-700`,
+  ghost: `${btnBase} bg-white border border-slate-300 text-slate-800 shadow-sm hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700`,
+  // Las clases se escriben completas (no armadas con variables) para que Tailwind las detecte
+  softBlue: `${btnBase} bg-blue-100 text-blue-800 ring-1 ring-inset ring-blue-300 hover:bg-blue-200 dark:bg-blue-500/15 dark:text-blue-200 dark:ring-blue-400/30 dark:hover:bg-blue-500/25`,
+  softGreen: `${btnBase} bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-300 hover:bg-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/30 dark:hover:bg-emerald-500/25`,
+  softRed: `${btnBase} bg-rose-100 text-rose-800 ring-1 ring-inset ring-rose-300 hover:bg-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/30 dark:hover:bg-rose-500/25`,
+  softAmber: `${btnBase} bg-amber-100 text-amber-900 ring-1 ring-inset ring-amber-300 hover:bg-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/30 dark:hover:bg-amber-500/25`,
+  softCyan: `${btnBase} bg-cyan-100 text-cyan-800 ring-1 ring-inset ring-cyan-300 hover:bg-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-200 dark:ring-cyan-400/30 dark:hover:bg-cyan-500/25`,
+  softPurple: `${btnBase} bg-violet-100 text-violet-800 ring-1 ring-inset ring-violet-300 hover:bg-violet-200 dark:bg-violet-500/15 dark:text-violet-200 dark:ring-violet-400/30 dark:hover:bg-violet-500/25`,
+};
+
+// Tamaño chico para botones dentro de tarjetas
+export const btnSm = "!px-3 !py-1.5 !text-xs";
 
 // ---------- Texto y estados ----------
+// Solo la primera letra en mayúscula ("lunes, 16 de noviembre" -> "Lunes, 16 de noviembre")
+export const capFirst = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+
 export const norm = (v) => String(v ?? "").trim().toLowerCase();
 
 // Siempre en minúscula, aunque en la base haya quedado "Pendiente"
